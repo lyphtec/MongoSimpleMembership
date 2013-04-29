@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Configuration;
-using System.Diagnostics.Contracts;
 using LyphTEC.MongoSimpleMembership.Helpers;
 
 namespace LyphTEC.MongoSimpleMembership.Models
@@ -13,7 +12,7 @@ namespace LyphTEC.MongoSimpleMembership.Models
     {
         public MembershipAccount(string userName)
         {
-            Contract.Requires<ArgumentNullException>(!string.IsNullOrWhiteSpace(userName));
+            Check.IsNotNull(userName);
 
             var now = DateTime.UtcNow;
 
@@ -39,7 +38,7 @@ namespace LyphTEC.MongoSimpleMembership.Models
         public int PasswordFailuresSinceLastSuccess { get; set; }
         public string Password { get; set; }
         public DateTime? PasswordChangedDate { get; set; }
-        // public string PasswordSalt { get; set; }     // Not used in SimpleMembershipProvider
+        public string PasswordSalt { get; set; } 
         public string PasswordVerificationToken { get; set; }
         public DateTime? PasswordVerificationTokenExpirationDate { get; set; }
         public DateTime? LastLoginDate { get; set; }

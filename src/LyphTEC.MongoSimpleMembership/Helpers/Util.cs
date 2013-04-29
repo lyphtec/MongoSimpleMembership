@@ -63,7 +63,7 @@ namespace LyphTEC.MongoSimpleMembership.Helpers
 
         }
 
-        internal static string GenerateToken(int tokenSizeInBytes = 16)
+        internal static string GenerateToken(byte tokenSizeInBytes = 16)
         {
             using (var prng = new RNGCryptoServiceProvider())
             {
@@ -71,7 +71,7 @@ namespace LyphTEC.MongoSimpleMembership.Helpers
             }
         }
 
-        internal static string GenerateToken(RandomNumberGenerator generator, int tokenSizeInBytes = 16)
+        internal static string GenerateToken(RandomNumberGenerator generator, byte tokenSizeInBytes = 16)
         {
             var tokenBytes = new byte[tokenSizeInBytes];
             generator.GetBytes(tokenBytes);

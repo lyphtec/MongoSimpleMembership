@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Configuration;
 using System.Configuration.Provider;
+using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using LyphTEC.MongoSimpleMembership.Extensions;
@@ -244,6 +245,22 @@ namespace LyphTEC.MongoSimpleMembership.Services
             var value = typeof (T) == typeof (OAuthToken) || typeof (T) == typeof (OAuthMembership) ? id.ToString().ToBsonObjectId() : BsonValue.Create(id);
             
             return _db.GetCollection<T>(GetCollectionName<T>()).FindOneByIdAs<T>(value);
+        }
+
+        public void RemoveOAuthMembershipsByUserId(int userId)
+        {
+            try
+            {
+                var query = Query.EQ("UserId", BsonValue.Create(userId));
+                var result = _oAuthMembershipCol.Remove(query, WriteConcern.Acknowledged);
+
+                if (!result.Ok && result.HasLastErrorMessage)
+                    Trace.TraceError("MongoDataContext.RemoveOAuthMembershipsByUserId() Remove ERROR: {0}", result.LastErrorMessage);
+            }
+            catch (Exception ex)
+            {
+                Trace.TraceError("MongoDataContext.RemoveOAuthMembershipsByUserId() ERROR: {0}", ex.ToString());
+            }
         }
 
         private static void ValidWriteResult(GetLastErrorResult result)

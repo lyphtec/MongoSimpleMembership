@@ -10,12 +10,14 @@ namespace LyphTEC.MongoSimpleMembership.Models
         /// Instantiates a new OAuthToken
         /// </summary>
         /// <param name="token">Token</param>
-        public OAuthToken(string token)
+        /// <param name="secret">Secret</param>
+        public OAuthToken(string token, string secret)
         {
-            if (string.IsNullOrWhiteSpace(token))
-                throw new ArgumentNullException("token");
+            Check.IsNotNull(token);
+            Check.IsNotNull(secret);
 
             Token = token;
+            Secret = secret;
         }
 
         public object Id { get; set; }

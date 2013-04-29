@@ -16,11 +16,8 @@ namespace LyphTEC.MongoSimpleMembership.Models
         /// <param name="userId">UserId</param>
         public OAuthMembership(string provider, string providerUserId, int userId)
         {
-            if (string.IsNullOrWhiteSpace(provider))
-                throw new ArgumentNullException("provider");
-
-            if (string.IsNullOrWhiteSpace(providerUserId))
-                throw new ArgumentNullException("providerUserId");
+            Check.IsNotNull(provider);
+            Check.IsNotNull(providerUserId);
 
             Provider = provider;
             ProviderUserId = providerUserId;

@@ -11,6 +11,7 @@ using LyphTEC.MongoSimpleMembership.Extensions;
 using LyphTEC.MongoSimpleMembership.Helpers;
 using LyphTEC.MongoSimpleMembership.Models;
 using LyphTEC.MongoSimpleMembership.Services;
+using MongoDB.Driver;
 using WebMatrix.WebData;
 
 namespace LyphTEC.MongoSimpleMembership
@@ -20,6 +21,17 @@ namespace LyphTEC.MongoSimpleMembership
         private string _appName;
         private MongoDataContext _context;
         private bool _isInitialized = false;
+        private string _providerName;
+
+        public MongoDatabase Database
+        {
+            get
+            {
+                VerifyInitialized();
+
+                return _context.Database;
+            }
+        }
 
         public override void Initialize(string name, System.Collections.Specialized.NameValueCollection config)
         {
@@ -27,6 +39,8 @@ namespace LyphTEC.MongoSimpleMembership
 
             if (string.IsNullOrWhiteSpace(name))
                 name = this.GetType().Name;
+
+            _providerName = name;
 
             if (string.IsNullOrWhiteSpace(config["description"]))
             {
@@ -40,6 +54,10 @@ namespace LyphTEC.MongoSimpleMembership
             Util.CheckAppNameLength(_appName);
 
             var connStringName = Util.GetValueOrDefault(config, "connectionStringName", o => o.ToString(), string.Empty);
+
+            if (string.IsNullOrWhiteSpace(connStringName))
+                throw new ProviderException("connectionStringName not specified");
+
             var connSettings = ConfigurationManager.ConnectionStrings[connStringName];
             Util.CheckConnectionStringSettings(connStringName, connSettings);
 
@@ -48,7 +66,7 @@ namespace LyphTEC.MongoSimpleMembership
             config.Remove("name");
             config.Remove("description");
             config.Remove("applicationName");
-            config.Remove("connectionString");
+            config.Remove("connectionStringName");
             config.Remove("enablePasswordRetrieval");
             config.Remove("enablePasswordReset");
             config.Remove("requiresQuestionAndAnswer");
@@ -74,7 +92,7 @@ namespace LyphTEC.MongoSimpleMembership
 
         private void InitializeContext(string connectionString)
         {
-            Check.IsNotNull(connectionString); 
+            Check.IsNotNull(connectionString);
 
             try
             {
@@ -110,7 +128,7 @@ namespace LyphTEC.MongoSimpleMembership
         /// <returns></returns>
         public override bool ConfirmAccount(string accountConfirmationToken)
         {
-            Check.IsNotNull(accountConfirmationToken); 
+            Check.IsNotNull(accountConfirmationToken);
 
             VerifyInitialized();
 
@@ -205,10 +223,12 @@ namespace LyphTEC.MongoSimpleMembership
             if (_context.Users.Any(x => x.UserNameLower == userName.ToLowerInvariant()))
                 throw new MembershipCreateUserException(MembershipCreateStatus.DuplicateUserName);
 
-            var hashedPassword = Crypto.HashPassword(password);
+            var salt = Crypto.GenerateSalt();
+            var hashedPassword = Crypto.HashPassword(password + salt);
 
             var newUser = new MembershipAccount(userName)
                               {
+                                  PasswordSalt = salt,
                                   Password = hashedPassword,
                                   IsConfirmed = !requireConfirmation
                               };
@@ -228,7 +248,7 @@ namespace LyphTEC.MongoSimpleMembership
 
         public override bool DeleteAccount(string userName)
         {
-            Check.IsNotNull(userName); 
+            Check.IsNotNull(userName);
 
             VerifyInitialized();
 
@@ -239,7 +259,7 @@ namespace LyphTEC.MongoSimpleMembership
 
         public override string GeneratePasswordResetToken(string userName, int tokenExpirationInMinutesFromNow)
         {
-            Check.IsNotNull(userName); 
+            Check.IsNotNull(userName);
 
             VerifyInitialized();
 
@@ -268,7 +288,7 @@ namespace LyphTEC.MongoSimpleMembership
 
         public override ICollection<OAuthAccountData> GetAccountsForUser(string userName)
         {
-            Check.IsNotNull(userName); 
+            Check.IsNotNull(userName);
 
             VerifyInitialized();
 
@@ -282,7 +302,7 @@ namespace LyphTEC.MongoSimpleMembership
 
         public override DateTime GetCreateDate(string userName)
         {
-            Check.IsNotNull(userName); 
+            Check.IsNotNull(userName);
 
             VerifyInitialized();
 
@@ -295,7 +315,7 @@ namespace LyphTEC.MongoSimpleMembership
 
         public override DateTime GetLastPasswordFailureDate(string userName)
         {
-            Check.IsNotNull(userName); 
+            Check.IsNotNull(userName);
 
             VerifyInitialized();
 
@@ -308,7 +328,7 @@ namespace LyphTEC.MongoSimpleMembership
 
         public override DateTime GetPasswordChangedDate(string userName)
         {
-            Check.IsNotNull(userName); 
+            Check.IsNotNull(userName);
 
             VerifyInitialized();
 
@@ -321,7 +341,7 @@ namespace LyphTEC.MongoSimpleMembership
 
         public override int GetPasswordFailuresSinceLastSuccess(string userName)
         {
-            Check.IsNotNull(userName); 
+            Check.IsNotNull(userName);
 
             VerifyInitialized();
 
@@ -360,7 +380,7 @@ namespace LyphTEC.MongoSimpleMembership
 
         private int VerifyConfirmedAccount(string userName, bool throwException = true)
         {
-            Check.IsNotNull(userName); 
+            Check.IsNotNull(userName);
 
             VerifyInitialized();
 
@@ -387,21 +407,29 @@ namespace LyphTEC.MongoSimpleMembership
 
         public override bool ResetPasswordWithToken(string token, string newPassword)
         {
-            Check.IsNotNull(token); 
-            Check.IsNotNull(newPassword); 
+            Check.IsNotNull(token);
+            Check.IsNotNull(newPassword);
 
             VerifyInitialized();
 
-            var user = _context.Users.SingleOrDefault(x => x.PasswordVerificationToken.ToLowerInvariant() == token.ToLowerInvariant());
-
-            if (user == null)
-                return false;
-
-            if (user.PasswordVerificationTokenExpirationDate.HasValue && user.PasswordVerificationTokenExpirationDate.Value > DateTime.UtcNow)
+            try
             {
-                var success = SetPassword(user, newPassword, true);
+                // this will throw Mongo exception if PasswordVerificationToken field is null
+                var user = _context.Users.SingleOrDefault(x => x.PasswordVerificationToken.ToLowerInvariant() == token.ToLowerInvariant());
 
-                return success;
+                if (user == null)
+                    return false;
+
+                if (user.PasswordVerificationTokenExpirationDate.HasValue && user.PasswordVerificationTokenExpirationDate.Value > DateTime.UtcNow)
+                {
+                    var success = SetPassword(user, newPassword, true);
+
+                    return success;
+                }
+            }
+            catch (Exception ex)
+            {
+                Trace.TraceError("MongoSimpleMembershipProvider.ResetPasswordWithToken() ERROR: {0}", ex.ToString());
             }
 
             return false;
@@ -431,6 +459,9 @@ namespace LyphTEC.MongoSimpleMembership
 
             if (string.IsNullOrWhiteSpace(userName))
                 throw new MembershipCreateUserException(MembershipCreateStatus.InvalidUserName);
+
+            if (string.IsNullOrWhiteSpace(providerUserId))
+                throw new MembershipCreateUserException(MembershipCreateStatus.InvalidProviderUserKey);     // not really the right status ??
 
             var user = _context.GetUser(userName);
 
@@ -514,7 +545,7 @@ namespace LyphTEC.MongoSimpleMembership
 
                 if (tk == null)
                 {
-                    tk = new OAuthToken(requestToken);
+                    tk = new OAuthToken(requestToken, requestTokenSecret);
                 }
                 else
                 {
@@ -546,10 +577,9 @@ namespace LyphTEC.MongoSimpleMembership
 
             var tk = _context.GetToken(requestToken);
 
-            if (tk != null)
-            {
-                _context.RemoveById<OAuthToken>(tk.Id);
-            }
+            if (tk == null) return;
+
+            _context.RemoveById<OAuthToken>(tk.Id);
 
             // Although there are two different types of tokens, request token and access token,
             // we treat them the same in database records.
@@ -616,7 +646,24 @@ namespace LyphTEC.MongoSimpleMembership
 
             var user = _context.GetUser(username);
 
-            return user != null && _context.RemoveById<MembershipAccount>(user.UserId);
+            if (user == null)
+                return false;
+
+            try
+            {
+                var success = _context.RemoveById<MembershipAccount>(user.UserId);
+
+                if (deleteAllRelatedData)
+                    _context.RemoveOAuthMembershipsByUserId(user.UserId);
+
+                return success;
+            }
+            catch (Exception ex)
+            {
+                Trace.TraceError("MongoSimpleMembershipProvider.DeleteUser() ERROR : {0}", ex.ToString());
+            }
+
+            return false;
         }
 
         public override bool EnablePasswordReset
@@ -684,7 +731,7 @@ namespace LyphTEC.MongoSimpleMembership
             return GetUser(user);
         }
 
-        private static MembershipUser GetUser(MembershipAccount user)
+        private MembershipUser GetUser(MembershipAccount user)
         {
             if (user == null)
                 return null;
@@ -692,7 +739,8 @@ namespace LyphTEC.MongoSimpleMembership
             var lastLogin = user.LastLoginDate.HasValue ? user.LastLoginDate.Value : DateTime.MinValue;
             var lastPasswordChange = user.PasswordChangedDate.HasValue ? user.PasswordChangedDate.Value : DateTime.MinValue;
 
-            return new MembershipUser(Membership.Provider.Name, user.UserName, user.UserId, null, null, null, true, false, user.CreateDate, lastLogin, DateTime.MinValue, lastPasswordChange, DateTime.MinValue);
+            // NOTE: This requires a valid system.web/membership section in config with matching provider name
+            return new MembershipUser(_providerName, user.UserName, user.UserId, null, null, null, user.IsConfirmed /* isApproved */, false, user.CreateDate, lastLogin, DateTime.MinValue, lastPasswordChange, DateTime.MinValue);
         }
 
         public override string GetUserNameByEmail(string email)
@@ -776,7 +824,7 @@ namespace LyphTEC.MongoSimpleMembership
             if (user == null || string.IsNullOrWhiteSpace(password))
                 return false;
 
-            var verificationSucceeded = Crypto.VerifyHashedPassword(user.Password, password);
+            var verificationSucceeded = Crypto.VerifyHashedPassword(user.Password, password + user.PasswordSalt);
 
             if (verificationSucceeded)
             {
@@ -799,7 +847,10 @@ namespace LyphTEC.MongoSimpleMembership
             if (user == null || string.IsNullOrWhiteSpace(newPassword))
                 return false;
 
-            user.Password = Crypto.HashPassword(newPassword);
+            var salt = Crypto.GenerateSalt();
+
+            user.PasswordSalt = salt;
+            user.Password = Crypto.HashPassword(newPassword + salt);
             user.PasswordChangedDate = DateTime.UtcNow;
 
             if (clearVerificationToken)
