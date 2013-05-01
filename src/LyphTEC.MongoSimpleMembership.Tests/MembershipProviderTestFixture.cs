@@ -52,7 +52,13 @@ namespace LyphTEC.MongoSimpleMembership.Tests
                                 IsConfirmed = false
                             };
 
-            _usersCol.Insert(user1);
+            var user2 = new MembershipAccount("NonLocalUser")
+                            {
+                                IsLocalAccount = false,
+                                IsConfirmed = true
+                            };
+
+            _usersCol.InsertBatch(new[] { user1, user2 });
 
             var oAuthTokenCol = db.GetCollection<OAuthToken>(OAuthToken.GetCollectionName());
             oAuthTokenCol.Drop();

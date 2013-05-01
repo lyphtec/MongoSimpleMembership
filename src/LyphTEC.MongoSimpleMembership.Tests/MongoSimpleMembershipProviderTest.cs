@@ -95,18 +95,37 @@ namespace LyphTEC.MongoSimpleMembership.Tests
             var user2Token = _provider.CreateAccount("User2", "password", true);
             Assert.False(string.IsNullOrWhiteSpace(user2Token));
 
-            var user2 = _fixture.GetUserById(2);
+            var user2 = _fixture.GetUserById(3);
             Assert.False(user2.IsConfirmed);
             
             // does not require confirmation
             var user3Token = _provider.CreateAccount("User3", "password", false);
             Assert.Null(user3Token);
 
-            var user3 = _fixture.GetUserById(3);
+            var user3 = _fixture.GetUserById(4);
             Assert.True(user3.IsConfirmed);
 
-
+            // converts a non-local account
+            _provider.CreateAccount("NonLocalUser", "password");
+            var user4 = _fixture.GetUserById(2);
+            Assert.True(user4.IsLocalAccount);
+            Assert.True(user4.Password.Length > 0);
+            
             _fixture.Users.PrintDump();
+        }
+
+        [Fact]
+        public void CreateUserAndAccount()
+        {
+            // most scenarios already covered by CreateAccount() test above
+
+            // extra data
+            _provider.CreateUserAndAccount("User2", "password", false, new Dictionary<string, object> {{"k1", 1}, {"k2", DateTime.Today}});
+            var user = _fixture.GetUserById(3);
+            Assert.True(user.IsConfirmed);
+            Assert.NotNull(user.ExtraData);
+            
+            user.PrintDump();
         }
 
         [Fact]
@@ -267,7 +286,8 @@ namespace LyphTEC.MongoSimpleMembership.Tests
         public void HasLocalAccount()
         {
             Assert.True(_provider.HasLocalAccount(1));
-            Assert.False(_provider.HasLocalAccount(3));
+            Assert.False(_provider.HasLocalAccount(2));     // non-local account
+            Assert.False(_provider.HasLocalAccount(3));     // non-existant
         }
 
         [Fact]
@@ -280,15 +300,21 @@ namespace LyphTEC.MongoSimpleMembership.Tests
         [Fact]
         public void CreateOrUpdateOAuthAccount()
         {
-            // invalid user
-            Assert.Throws<MembershipCreateUserException>(() => _provider.CreateOrUpdateOAuthAccount("Test", "foobar", "foobar"));
-
-            // create
+            // create new non-local user
+            _provider.CreateOrUpdateOAuthAccount("Test", "foobar", "User2");
+            var user2 = _fixture.GetUserById(3);
+            Assert.NotNull(user2);
+            Assert.False(user2.IsLocalAccount);
+            Assert.Equal(1, _fixture.OAuthMemberships.Count(x => x.UserId == 3));
+            user2.PrintDump();
+            
+            // create on existing user
             _provider.CreateOrUpdateOAuthAccount("Test", "ProviderUserId2", "User1");
-            Assert.Equal(2, _fixture.OAuthMemberships.Count());
+            Assert.Equal(2, _fixture.OAuthMemberships.Count(x => x.UserId == 1));
+
             _fixture.OAuthMemberships.PrintDump();
 
-            // TODO: update
+            // TODO: update existing user
         }
 
         [Fact]
@@ -391,7 +417,7 @@ namespace LyphTEC.MongoSimpleMembership.Tests
             int totalRecords;
             var result = _provider.GetAllUsers(0, 10, out totalRecords);
 
-            Assert.Equal(1, result.Count);
+            Assert.Equal(2, result.Count);
             
             result.PrintDump();
             totalRecords.PrintDump();

@@ -11,6 +11,8 @@ using LyphTEC.MongoSimpleMembership.Extensions;
 using LyphTEC.MongoSimpleMembership.Helpers;
 using LyphTEC.MongoSimpleMembership.Models;
 using LyphTEC.MongoSimpleMembership.Services;
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
 using WebMatrix.WebData;
 
@@ -220,22 +222,46 @@ namespace LyphTEC.MongoSimpleMembership
             if (string.IsNullOrWhiteSpace(password))
                 throw new MembershipCreateUserException(MembershipCreateStatus.InvalidPassword);
 
-            if (_context.Users.Any(x => x.UserNameLower == userName.ToLowerInvariant()))
+            var user = _context.GetUser(userName);
+
+            // existing local accounts are duplicates
+            if (user != null && user.IsLocalAccount)
                 throw new MembershipCreateUserException(MembershipCreateStatus.DuplicateUserName);
 
             var salt = Crypto.GenerateSalt();
             var hashedPassword = Crypto.HashPassword(password + salt);
 
-            var newUser = new MembershipAccount(userName)
-                              {
-                                  PasswordSalt = salt,
-                                  Password = hashedPassword,
-                                  IsConfirmed = !requireConfirmation
-                              };
+            if (hashedPassword.Length > 128)
+                throw new MembershipCreateUserException(MembershipCreateStatus.InvalidPassword);
+                
+            // create a new local account
+            if (user == null)
+            {
+                user = new MembershipAccount(userName)
+                           {
+                               PasswordSalt = salt,
+                               Password = hashedPassword,
+                               IsConfirmed = !requireConfirmation
+                           };
+            }
+            else
+            {
+                // convert a non-local account
+                user.IsLocalAccount = true;
+                user.PasswordSalt = salt;
+                user.Password = hashedPassword;
+                user.IsConfirmed = !requireConfirmation;    // should already be confirmed
+                user.PasswordChangedDate = DateTime.UtcNow;
+                user.LastPasswordFailureDate = null;
+                user.PasswordFailuresSinceLastSuccess = 0;
+            }
+
+            if (values != null)
+                user.ExtraData = values.ToJson();
 
             try
             {
-                _context.Save(newUser);
+                _context.Save(user);
             }
             catch (Exception ex)
             {
@@ -243,7 +269,7 @@ namespace LyphTEC.MongoSimpleMembership
                 throw new MembershipCreateUserException(MembershipCreateStatus.ProviderError);
             }
 
-            return requireConfirmation ? newUser.ConfirmationToken : null;
+            return requireConfirmation ? user.ConfirmationToken : null;
         }
 
         public override bool DeleteAccount(string userName)
@@ -441,7 +467,7 @@ namespace LyphTEC.MongoSimpleMembership
 
             var user = _context.FindOneById<MembershipAccount>(userId);
 
-            return (user != null);
+            return (user != null && user.IsLocalAccount);
         }
 
         public override string GetUserNameFromId(int userId)
@@ -466,7 +492,24 @@ namespace LyphTEC.MongoSimpleMembership
             var user = _context.GetUser(userName);
 
             if (user == null)
-                throw new MembershipCreateUserException(MembershipCreateStatus.InvalidUserName);
+            {
+                // create a non-local account
+                user = new MembershipAccount(userName)
+                           {
+                               IsConfirmed = true,
+                               IsLocalAccount = false
+                           };
+
+                try
+                {
+                    _context.Save(user);
+                }
+                catch (Exception ex)
+                {
+                    Trace.TraceError("MongoSimpleMembershipProvider.CreateOrUpdateOAuthAccount() ERROR : {0}", ex.ToString());
+                    throw new MembershipCreateUserException(MembershipCreateStatus.ProviderError);
+                }
+            }
 
             var oam = _context.GetOAuthMembership(provider, providerUserId);
 

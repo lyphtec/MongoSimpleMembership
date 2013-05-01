@@ -6,4 +6,4 @@ using System.Runtime.InteropServices;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("LyphTEC.MongoDBSimpleMembership")]
-[assembly: AssemblyDescription("SimpleMembership provider using MongoDB as the backend")]
+[assembly: AssemblyDescription("SimpleMembershipProvider using MongoDB as the backing store")]

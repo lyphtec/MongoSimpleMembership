@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+  <metadata>
+    <id>$id$</id>
+    <title>$description$</title>
+    <version>$version$</version>
+    <authors>$author$</authors>
+    <owners>$author$</owners>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>
+      SimpleMembershipProvider using MongoDB as the backing store
+      More information can be found at the project repo on GitHub (https://github.com/lyphtec/LyphTEC.MongoSimpleMembership)
+    </description>
+    <summary>$description$</summary>
+    <tags>lyphtec mongodb simplemembership simplemembershiprovider mvc4</tags>
+    <projectUrl>https://github.com/lyphtec/LyphTEC.MongoSimpleMembership</projectUrl>
+    <language>en-AU</language>
+    <copyright>Copyright © 2013. LyphTEC (lyphtec@gmail.com)</copyright>
+    <frameworkAssemblies>
+    </frameworkAssemblies>
+  </metadata>
+</package>

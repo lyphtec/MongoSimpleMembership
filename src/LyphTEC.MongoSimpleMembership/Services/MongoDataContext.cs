@@ -33,7 +33,8 @@ namespace LyphTEC.MongoSimpleMembership.Services
                                                                          cm.AutoMap();
                                                                          cm.SetIdMember(cm.GetMemberMap(x => x.UserId));
                                                                          cm.IdMemberMap.SetRepresentation(BsonType.Int32).SetIdGenerator(IntIdGenerator.Instance);
-                                                                         cm.SetIgnoreExtraElements(true);
+                                                                         cm.GetMemberMap(x => x.UserName).SetIsRequired(true);
+                                                                         cm.SetExtraElementsMember(cm.GetMemberMap(x => x.ExtraElements));
                                                                      }
                     );
             }
@@ -45,6 +46,7 @@ namespace LyphTEC.MongoSimpleMembership.Services
                                                             cm.AutoMap();
                                                             cm.SetIdMember(cm.GetMemberMap(x => x.RoleId));
                                                             cm.IdMemberMap.SetRepresentation(BsonType.Int32).SetIdGenerator(IntIdGenerator.Instance);
+                                                            cm.GetMemberMap(x => x.RoleName).SetIsRequired(true);
                                                             cm.SetIgnoreExtraElements(true);
                                                         }
                     );
@@ -57,6 +59,8 @@ namespace LyphTEC.MongoSimpleMembership.Services
                                                                   cm.AutoMap();
                                                                   cm.SetIdMember(cm.GetMemberMap(x => x.Id));
                                                                   cm.IdMemberMap.SetRepresentation(BsonType.ObjectId).SetIdGenerator(BsonObjectIdGenerator.Instance);
+                                                                  cm.GetMemberMap(x => x.Token).SetIsRequired(true);
+                                                                  cm.GetMemberMap(x => x.Secret).SetIsRequired(true);
                                                                   cm.SetIgnoreExtraElements(true);
                                                               }
                     );
@@ -69,6 +73,8 @@ namespace LyphTEC.MongoSimpleMembership.Services
                                                                        cm.AutoMap();
                                                                        cm.SetIdMember(cm.GetMemberMap(x => x.Id));
                                                                        cm.IdMemberMap.SetRepresentation(BsonType.ObjectId).SetIdGenerator(BsonObjectIdGenerator.Instance);
+                                                                       cm.GetMemberMap(x => x.Provider).SetIsRequired(true);
+                                                                       cm.GetMemberMap(x => x.ProviderUserId).SetIsRequired(true);
                                                                        cm.SetIgnoreExtraElements(true);
                                                                    }
                     );
