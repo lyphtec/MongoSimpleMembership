@@ -12,7 +12,6 @@ using LyphTEC.MongoSimpleMembership.Helpers;
 using LyphTEC.MongoSimpleMembership.Models;
 using LyphTEC.MongoSimpleMembership.Services;
 using MongoDB.Bson;
-using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
 using WebMatrix.WebData;
 
@@ -24,6 +23,10 @@ namespace LyphTEC.MongoSimpleMembership
         private MongoDataContext _context;
         private bool _isInitialized = false;
         private string _providerName;
+        
+        private int _minRequiredPasswordLength;
+        private int _minRequiredNonalphanumericCharacters;
+        private string _passwordStrengthRegularExpression = string.Empty;
 
         public MongoDatabase Database
         {
@@ -64,6 +67,10 @@ namespace LyphTEC.MongoSimpleMembership
             Util.CheckConnectionStringSettings(connStringName, connSettings);
 
             InitializeContext(connSettings.ConnectionString);
+
+            _minRequiredPasswordLength = Util.GetValueOrDefault(config, "minRequiredPasswordLength", Convert.ToInt32, 6);
+            _minRequiredNonalphanumericCharacters = Util.GetValueOrDefault(config, "minRequiredNonalphanumericCharacters", Convert.ToInt32, 0);
+            _passwordStrengthRegularExpression = Util.GetValueOrDefault(config, "passwordStrengthRegularExpression", Convert.ToString, string.Empty);
 
             config.Remove("name");
             config.Remove("description");
@@ -697,7 +704,7 @@ namespace LyphTEC.MongoSimpleMembership
                 var success = _context.RemoveById<MembershipAccount>(user.UserId);
 
                 if (deleteAllRelatedData)
-                    _context.RemoveOAuthMembershipsByUserId(user.UserId);
+                    _context.RemoveOAuthMemberships(user.UserId);
 
                 return success;
             }
@@ -798,12 +805,12 @@ namespace LyphTEC.MongoSimpleMembership
 
         public override int MinRequiredNonAlphanumericCharacters
         {
-            get { return 0; }
+            get { return _minRequiredNonalphanumericCharacters; }
         }
 
         public override int MinRequiredPasswordLength
         {
-            get { return 6; }
+            get { return _minRequiredPasswordLength; }
         }
 
         public override int PasswordAttemptWindow
@@ -818,7 +825,7 @@ namespace LyphTEC.MongoSimpleMembership
 
         public override string PasswordStrengthRegularExpression
         {
-            get { return string.Empty; }
+            get { return _passwordStrengthRegularExpression; }
         }
 
         public override bool RequiresQuestionAndAnswer

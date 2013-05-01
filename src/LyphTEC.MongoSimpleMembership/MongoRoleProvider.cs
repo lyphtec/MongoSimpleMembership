@@ -105,18 +105,16 @@ namespace LyphTEC.MongoSimpleMembership
             var usernamesLower = usernames.Select(x => x.ToLowerInvariant());
 
             var users = _context.Users.Where(x => usernamesLower.Contains(x.UserNameLower));
-            var roles = _context.Roles.Where(x => roleNames.Contains(x.RoleName));
+            var roles = _context.Roles.Where(x => roleNames.Contains(x.RoleName)).Select(x => x.RoleName).ToList();
 
             foreach (var user in users)
             {
                 if (user.Roles == null)
-                    user.Roles = new List<Role>();
+                    user.Roles = new List<string>();
 
                 if (user.Roles.Any())
                 {
-                    var userRoles = user.Roles.Select(x => x.RoleId);
-
-                    var newRoles = roles.Where(x => !x.RoleId.In(userRoles));
+                    var newRoles = roles.Except(user.Roles);
                     user.Roles.AddRange(newRoles);
                 }
                 else
@@ -157,7 +155,7 @@ namespace LyphTEC.MongoSimpleMembership
 
             VerifyInitialize();
 
-            var usersWithRole = _context.Users.Where(x => x.Roles != null && x.Roles.Any(r => r.RoleName == roleName));
+            var usersWithRole = _context.Users.Where(x => x.Roles != null && x.Roles.Contains(roleName));
 
             if (throwOnPopulatedRole && usersWithRole.Any())
                 throw new ProviderException(string.Format("Cannot delete role '{0}' as it contains users", roleName));
@@ -171,7 +169,7 @@ namespace LyphTEC.MongoSimpleMembership
                 // Also delete any that are currently assigned
                 usersWithRole.ForEach(x =>
                                           {
-                                              x.Roles.Remove(role);
+                                              x.Roles.Remove(role.RoleName);
                                               _context.Save(x);
                                           }
                     );
@@ -190,7 +188,7 @@ namespace LyphTEC.MongoSimpleMembership
             VerifyInitialize();
 
             // Using IsMatch here : http://www.mongodb.org/display/DOCS/CSharp+Driver+LINQ+Tutorial#CSharpDriverLINQTutorial-IsMatch%28regularexpressionmethod%29
-            var users = _context.Users.Where(x => Regex.IsMatch(x.UserNameLower, usernameToMatchRegex, RegexOptions.IgnoreCase) && x.Roles.Any(r => r.RoleName == roleName));
+            var users = _context.Users.Where(x => Regex.IsMatch(x.UserNameLower, usernameToMatchRegex, RegexOptions.IgnoreCase) && x.Roles.Contains(roleName));
 
             return !users.Any() ? null : users.Select(x => x.UserName).ToList().OrderBy(x => x).ToArray();
         }
@@ -212,7 +210,7 @@ namespace LyphTEC.MongoSimpleMembership
             if (user == null)
                 throw new ProviderException(string.Format("No user found matching username '{0}'", username));
 
-            return user.Roles.Select(x => x.RoleName).ToList().OrderBy(x => x).ToArray();
+            return user.Roles.OrderBy(x => x).ToArray();
         }
 
         public override string[] GetUsersInRole(string roleName)
@@ -224,7 +222,7 @@ namespace LyphTEC.MongoSimpleMembership
             if (!RoleExists(roleName))
                 throw new ProviderException("Role does not exist");
 
-            return _context.Users.Where(x => x.Roles.Any(r => r.RoleName == roleName)).Select(x => x.UserName).ToList().OrderBy(x => x).ToArray();
+            return _context.Users.Where(x => x.Roles.Contains(roleName)).Select(x => x.UserName).ToList().OrderBy(x => x).ToArray();
         }
 
         public override bool IsUserInRole(string username, string roleName)
@@ -239,7 +237,7 @@ namespace LyphTEC.MongoSimpleMembership
             if (user == null || user.Roles == null || user.Roles.Count == 0)
                 return false;
 
-            return user.Roles.Any(x => x.RoleName == roleName);
+            return user.Roles.Contains(roleName);
         }
 
         public override void RemoveUsersFromRoles(string[] usernames, string[] roleNames)
@@ -254,9 +252,7 @@ namespace LyphTEC.MongoSimpleMembership
             var users = _context.Users.Where(x => usernamesLower.Contains(x.UserNameLower) && x.Roles != null && x.Roles.Any());
             foreach (var user in users)
             {
-                var userRoleIds = user.Roles.Where(x => roleNames.Contains(x.RoleName)).Select(x => x.RoleId);
-
-                user.Roles.RemoveAll(x => userRoleIds.Contains(x.RoleId));
+                user.Roles.RemoveAll(x => roleNames.Contains(x));
 
                 _context.Save(user);
             }

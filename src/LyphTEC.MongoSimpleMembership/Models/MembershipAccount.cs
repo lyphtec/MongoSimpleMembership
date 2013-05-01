@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Configuration;
 using LyphTEC.MongoSimpleMembership.Helpers;
-using MongoDB.Bson;
 
 namespace LyphTEC.MongoSimpleMembership.Models
 {
@@ -27,7 +26,7 @@ namespace LyphTEC.MongoSimpleMembership.Models
 
             IsLocalAccount = true;
 
-            Roles = new List<Role>();
+            Roles = new List<string>();
         }
 
         public int UserId { get; set; }
@@ -47,14 +46,15 @@ namespace LyphTEC.MongoSimpleMembership.Models
         public DateTime? PasswordVerificationTokenExpirationDate { get; set; }
         public DateTime? LastLoginDate { get; set; }
 
-        public List<Role> Roles { get; set; }
+        /// <summary>
+        /// Role names
+        /// </summary>
+        public List<string> Roles { get; set; }
 
         /// <summary>
         /// Serialized Json data
         /// </summary>
         public string ExtraData { get; set; }
-
-        public BsonDocument ExtraElements { get; set; }     // serialization catch-all - http://docs.mongodb.org/ecosystem/tutorial/serialize-documents-with-the-csharp-driver/#supporting-extra-elements
 
         /// <summary>
         /// Gets the name of the collection when stored in Mongo. By default it's &quot;webpages_Membership&quot;, but can be overridden in config by app setting &quot;MongoDBSimpleMembership:MembershipAccountName&quot;
@@ -64,7 +64,7 @@ namespace LyphTEC.MongoSimpleMembership.Models
         {
             var name = "webpages_Membership";
             
-            var setting = ConfigurationManager.AppSettings["MongoDBSimpleMembership:MembershipAccountName"];
+            var setting = ConfigurationManager.AppSettings["MongoSimpleMembership:MembershipAccountName"];
             if (setting != null && !string.IsNullOrWhiteSpace(setting))
                 name = setting;
 

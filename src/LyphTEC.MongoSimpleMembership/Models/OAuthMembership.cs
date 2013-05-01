@@ -49,7 +49,7 @@ namespace LyphTEC.MongoSimpleMembership.Models
         {
             var name = "webpages_OAuthMembership";
             
-            var setting = ConfigurationManager.AppSettings["MongoDBSimpleMembership:OAuthMembershipName"];
+            var setting = ConfigurationManager.AppSettings["MongoSimpleMembership:OAuthMembershipName"];
             if (setting != null && !string.IsNullOrWhiteSpace(setting))
                 name = setting;
 

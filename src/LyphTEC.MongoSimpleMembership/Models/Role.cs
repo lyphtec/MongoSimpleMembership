@@ -55,7 +55,7 @@ namespace LyphTEC.MongoSimpleMembership.Models
         {
             var name = "webpages_Role";
             
-            var setting = ConfigurationManager.AppSettings["MongoDBSimpleMembership:RoleName"];
+            var setting = ConfigurationManager.AppSettings["MongoSimpleMembership:RoleName"];
             if (setting != null && !string.IsNullOrWhiteSpace(setting))
                 name = setting;
 

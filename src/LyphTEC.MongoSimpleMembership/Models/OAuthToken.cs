@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Configuration;
-using MongoDB.Bson;
 
 namespace LyphTEC.MongoSimpleMembership.Models
 {
@@ -32,7 +31,7 @@ namespace LyphTEC.MongoSimpleMembership.Models
         {
             var name = "webpages_OAuthToken";
             
-            var setting = ConfigurationManager.AppSettings["MongoDBSimpleMembership:OAuthTokenName"];
+            var setting = ConfigurationManager.AppSettings["MongoSimpleMembership:OAuthTokenName"];
             if (setting != null && !string.IsNullOrWhiteSpace(setting))
                 name = setting;
 

@@ -34,7 +34,7 @@ namespace LyphTEC.MongoSimpleMembership.Services
                                                                          cm.SetIdMember(cm.GetMemberMap(x => x.UserId));
                                                                          cm.IdMemberMap.SetRepresentation(BsonType.Int32).SetIdGenerator(IntIdGenerator.Instance);
                                                                          cm.GetMemberMap(x => x.UserName).SetIsRequired(true);
-                                                                         cm.SetExtraElementsMember(cm.GetMemberMap(x => x.ExtraElements));
+                                                                         cm.SetIgnoreExtraElements(true);
                                                                      }
                     );
             }
@@ -253,7 +253,7 @@ namespace LyphTEC.MongoSimpleMembership.Services
             return _db.GetCollection<T>(GetCollectionName<T>()).FindOneByIdAs<T>(value);
         }
 
-        public void RemoveOAuthMembershipsByUserId(int userId)
+        public void RemoveOAuthMemberships(int userId)
         {
             try
             {

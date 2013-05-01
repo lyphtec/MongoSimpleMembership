@@ -50,7 +50,7 @@ namespace LyphTEC.MongoSimpleMembership.Tests
             usersCol.Drop();
 
             var user1 = new MembershipAccount("User1");
-            user1.Roles.Add(roles.Single(x => x.RoleName == "Admin"));  // this user is an Admin
+            user1.Roles.Add("Admin");  // this user is an Admin
 
             var users = new List<MembershipAccount>
                             {
