@@ -4,7 +4,7 @@ This this a SimpleMembership implementation using MongoDB as the backing store t
 
 For more information about SimpleMembership see this post by Jon Galloway : [SimpleMembership, Membership Providers, Universal Providers and the new ASP.NET 4.5 Web Forms and ASP.NET MVC 4 templates](http://weblogs.asp.net/jgalloway/archive/2012/08/29/simplemembership-membership-providers-universal-providers-and-the-new-asp-net-4-5-web-forms-and-asp-net-mvc-4-templates.aspx)
 
-### Installation
+## Installation
 
 Available on [NuGet](http://nuget.org/packages/LyphTEC.MongoSimpleMembership/):
 
@@ -12,7 +12,7 @@ Available on [NuGet](http://nuget.org/packages/LyphTEC.MongoSimpleMembership/):
 PM> Install-Package LyphTEC.MongoSimpleMembership
 ```
 
-### Required changes
+## Required changes
 
 You must complete the following steps after you have installed the NuGet package before your app will run:
 
@@ -24,7 +24,7 @@ You must complete the following steps after you have installed the NuGet package
       <connectionStrings>
         <clear/>
         <add name="MongoSimpleMembership" connectionString="mongodb://localhost/SimpleMembership?safe=true"  />
-        </connectionStrings>
+      </connectionStrings>
     ```
 
     Note that the connection string must also include the database name. In the example above, this will use the database named "SimpleMembership".   
@@ -51,17 +51,17 @@ You must complete the following steps after you have installed the NuGet package
       </roleManager>
     ```
    
-3. If you are using the default "ASP.NET MVC4 Internet" template. You must make some changes to AccountController:
+3.  If you are using the default "ASP.NET MVC4 Internet" template. You must make some changes to AccountController:
 
-*   Remove the [InitializeSimpleMembership] attribute (this is the ActionFilterAttribute defined in Filters/InitializeSimpleMembershipAttribute.cs).
-    This used by the default SimpleMembershipProvider that needs to initialize the SQL Server to setup the database.
-    Since we are no longer using SQL Server, this is no longer required.
+    *   Remove the [InitializeSimpleMembership] attribute (this is the ActionFilterAttribute defined in Filters/InitializeSimpleMembershipAttribute.cs).
+        This used by the default SimpleMembershipProvider that needs to initialize the SQL Server.
+        Since we are not using SQL Server, this is no longer required.
 
-*   Make changes to the ExternalLoginConfirmation() method to remove SQL Server related hooks used by the default SimpleMembershipProvider.
+    *   Make changes to the ExternalLoginConfirmation() method to remove Entity Framework related hooks used by the default SimpleMembershipProvider.
 
-    Here's a complete example: 
+        Here's what it looks like before the change: 
 
-    ```csharp
+        ```csharp
         [HttpPost]
         [AllowAnonymous]
         [ValidateAntiForgeryToken]
@@ -77,21 +77,26 @@ You must complete the following steps after you have installed the NuGet package
 
             if (ModelState.IsValid)
             {
-                var userId = WebSecurity.GetUserId(model.UserName);
-
-                if (userId == -1)
+                // Insert a new user into the database
+                using (UsersContext db = new UsersContext())
                 {
-                    // TODO : Add custom user profile logic
+                    UserProfile user = db.UserProfiles.FirstOrDefault(u => u.UserName.ToLower() == model.UserName.ToLower());
+                    // Check if user already exists
+                    if (user == null)
+                    {
+                        // Insert name into the profile table
+                        db.UserProfiles.Add(new UserProfile { UserName = model.UserName });
+                        db.SaveChanges();
 
-                    // this will create a non-local account
-                    OAuthWebSecurity.CreateOrUpdateAccount(provider, providerUserId, model.UserName);
-                    OAuthWebSecurity.Login(provider, providerUserId, createPersistentCookie: false);
+                        OAuthWebSecurity.CreateOrUpdateAccount(provider, providerUserId, model.UserName);
+                        OAuthWebSecurity.Login(provider, providerUserId, createPersistentCookie: false);
 
-                    return RedirectToLocal(returnUrl);
-                }
-                else
-                {
-                    ModelState.AddModelError("UserName", "User name already exists. Please enter a different user name.");
+                        return RedirectToLocal(returnUrl);
+                    }
+                    else
+                    {
+                        ModelState.AddModelError("UserName", "User name already exists. Please enter a different user name.");
+                    }
                 }
             }
 
@@ -99,6 +104,73 @@ You must complete the following steps after you have installed the NuGet package
             ViewBag.ReturnUrl = returnUrl;
             return View(model);
         }
-    ```
+        ```
+        
+        Here's what it should look like after the change:        
 
-    Checkout a working [sample MVC4 app here](https://github.com/lyphtec/LyphTEC.MongoSimpleMembership/tree/master/src/LyphTEC.MongoSimpleMembership.Sample)   
+        ```csharp
+            [HttpPost]
+            [AllowAnonymous]
+            [ValidateAntiForgeryToken]
+            public ActionResult ExternalLoginConfirmation(RegisterExternalLoginModel model, string returnUrl)
+            {
+                string provider = null;
+                string providerUserId = null;
+
+                if (User.Identity.IsAuthenticated || !OAuthWebSecurity.TryDeserializeProviderUserId(model.ExternalLoginData, out provider, out providerUserId))
+                {
+                    return RedirectToAction("Manage");
+                }
+
+                if (ModelState.IsValid)
+                {
+                    var userId = WebSecurity.GetUserId(model.UserName);
+
+                    if (userId == -1)
+                    {
+                        // TODO : Add custom user profile logic here
+
+                        // this will create a non-local account
+                        OAuthWebSecurity.CreateOrUpdateAccount(provider, providerUserId, model.UserName);
+                        OAuthWebSecurity.Login(provider, providerUserId, createPersistentCookie: false);
+
+                        return RedirectToLocal(returnUrl);
+                    }
+                    else
+                    {
+                        ModelState.AddModelError("UserName", "User name already exists. Please enter a different user name.");
+                    }
+                }
+
+                ViewBag.ProviderDisplayName = OAuthWebSecurity.GetOAuthClientData(provider).DisplayName;
+                ViewBag.ReturnUrl = returnUrl;
+                return View(model);
+            }
+        ```
+
+        See the [sample MVC4 app](https://github.com/lyphtec/LyphTEC.MongoSimpleMembership/tree/master/src/LyphTEC.MongoSimpleMembership.Sample) for reference.   
+
+## Customising the storage collection names
+
+By default, the [entities](https://github.com/lyphtec/LyphTEC.MongoSimpleMembership/tree/master/src/LyphTEC.MongoSimpleMembership/Models) are stored in collections with the following names:
+
+![Default collection names](http://static.lyphtec.com/projects/msm/default_collections.png)
+
+This matches the table names used in the standard SQL Server based SimpleMembershipProvider.
+
+If desired, you can change the default collection names by using the following appSettings:
+
+```xml
+  <appSettings>
+    <add key="MongoSimpleMembership:MembershipAccountName" value="webpages_Membership" />
+    <add key="MongoSimpleMembership:OAuthMembershipName" value="webpages_OAuthMembership" />
+    <add key="MongoSimpleMembership:OAuthTokenName" value="webpages_OAuthToken" />
+    <add key="MongoSimpleMembership:RoleName" value="webpages_Role" />
+  </appSettings>
+```
+
+## License
+
+[Apache License, Version 2.0](https://github.com/lyphtec/LyphTEC.MongoSimpleMembership/blob/master/license.txt)
+
+
