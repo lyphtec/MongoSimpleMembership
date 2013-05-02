@@ -1,0 +1,29 @@
+﻿@{
+    //WebSecurity.InitializeDatabaseConnection("StarterSite", "UserProfile", "UserId", "Email", autoCreateTables: true);
+
+    // To let users of this site log in using their accounts from other sites such as Microsoft, Facebook, Twitter,
+    // you must update this site. For more information visit http://go.microsoft.com/fwlink/?LinkID=226949
+
+    //OAuthWebSecurity.RegisterMicrosoftClient(
+    //    clientId: "",
+    //    clientSecret: "");
+
+    //OAuthWebSecurity.RegisterTwitterClient(
+    //    consumerKey: "",
+    //    consumerSecret: "");
+
+    // IMPORTANT: We are using same as the MVC4 sample - so this is running on the same local port, thus we cannot have 2 up at the same time!
+    OAuthWebSecurity.RegisterFacebookClient(
+        appId: "306223519449629",
+        appSecret: "686a209db12f8182a77a8f6b0661d569");
+
+    OAuthWebSecurity.RegisterGoogleClient();
+    
+    //WebMail.SmtpServer = "mailserver.example.com";
+    //WebMail.EnableSsl = true;
+    //WebMail.UserName = "username@example.com";
+    //WebMail.Password = "your-password";
+    //WebMail.From = "your-name-here@example.com";
+
+    // To learn how to optimize scripts and stylesheets in your site go to http://go.microsoft.com/fwlink/?LinkID=248973
+}

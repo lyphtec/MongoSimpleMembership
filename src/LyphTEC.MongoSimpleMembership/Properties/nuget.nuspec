@@ -16,7 +16,9 @@
     <projectUrl>https://github.com/lyphtec/LyphTEC.MongoSimpleMembership</projectUrl>
     <language>en-AU</language>
     <copyright>Copyright © 2013. LyphTEC (lyphtec@gmail.com)</copyright>
-    <frameworkAssemblies>
-    </frameworkAssemblies>
   </metadata>
+  <files>
+    <file src="web.config.transform" target="Content" />
+    <file src="nuget_readme.txt" target="readme.txt" />
+  </files>
 </package>

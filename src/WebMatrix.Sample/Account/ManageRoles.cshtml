@@ -1,0 +1,111 @@
+﻿@using WebMatrix.WebData
+
+@* Remove this section if you are using bundling *@
+@section Scripts {
+    <script src="~/Scripts/jquery.validate.min.js"></script>
+    <script src="~/Scripts/jquery.validate.unobtrusive.min.js"></script>
+}
+
+@{
+    WebSecurity.RequireAuthenticatedUser();
+
+    // NOTE: Normally this page should be locked down to users with an "Admin" equivalent role
+    // WebSecurity.RequireRoles("Admin");
+
+    Layout = "~/_SiteLayout.cshtml";
+    Page.Title = "Manage Roles";
+
+    Validation.RequireField("textRoleName", "Role name cannot be blank.");
+
+    if (IsPost) {
+        var userName = Request["selectUserName"];
+        var selectRoleName = Request["selectRoleName"];
+        var roleName = Request["textRoleName"];
+        var roleToDelete = Request["roleToDelete"];
+
+        // Create new role
+        if (!Request["buttonCreateRole"].IsEmpty()) {
+            Validation.Validate();
+
+            if (!Roles.RoleExists(roleName) && !roleName.IsEmpty()) {
+                Roles.CreateRole(roleName);
+            }                
+        }
+
+        // Delete role
+        if (!Request["roleToDelete"].IsEmpty()) {
+            Roles.DeleteRole(roleToDelete, false);
+        }
+
+        // Add user to role
+        if (!Request["buttonAddUserToRole"].IsEmpty()) {
+            if (!Roles.IsUserInRole(userName, selectRoleName)) {
+                Roles.AddUserToRole(userName, selectRoleName);
+            }
+        }
+
+        // Remove user from role
+        if (!Request["buttonDeleteUserFromRole"].IsEmpty()) {
+            if (Roles.IsUserInRole(userName, selectRoleName)) {
+                Roles.RemoveUserFromRole(userName, selectRoleName);
+            }
+        }
+    }
+
+}
+
+<hgroup class="title">
+    <h1>@Page.Title</h1>
+</hgroup>
+
+<form method="post">       
+    <fieldset>
+        <label for="textRoleName">Role name:</label><br/>
+        <input type="text" value="" name="textRoleName" @Validation.For("textRoleName") /> &nbsp;
+        <input type="submit" value="Create Role" name="buttonCreateRole" />
+        @Html.ValidationMessage("textRoleName")
+    </fieldset>
+</form>
+
+<form method="post"> 
+    <fieldset>
+        <label for="selectUserName">Users:</label>
+        <select name="selectUserName">
+        @foreach(MembershipUser user in Membership.GetAllUsers()) {
+            <option>@user.UserName</option>
+        }
+        </select>
+        &nbsp;
+        <label for="selectRoleName">Roles:</label>
+        <select name="selectRoleName">
+        @foreach(var r in Roles.GetAllRoles())
+        {
+            <option>@r</option>
+        }
+        </select>
+        &nbsp;
+        <input type="submit" value="Add User to Role" name="buttonAddUserToRole" />
+        <input type="submit" value="Remove User from Role" name="buttonDeleteUserFromRole" />
+    </fieldset>     
+         
+    <h3>Roles</h3>
+        @if (Roles.GetAllRoles().Length == 0) {
+            <p>There are currently no roles</p>
+        } else {
+            <ul>
+                @foreach(var r in Roles.GetAllRoles()) {
+                    <li>@r <button type="submit" name="roleToDelete" value="@r">Delete</button>
+                        <ul>
+                            @foreach(var u in Roles.GetUsersInRole(r)) {
+                                <li>@u</li>
+                            }
+                        </ul>
+                    </li>
+                }
+            </ul>
+        }
+</form>
+
+<p>&nbsp;</p>
+
+<p><a href="@Href("~/")">Return to home page</a></p>

@@ -864,6 +864,7 @@ namespace LyphTEC.MongoSimpleMembership
 
             return user != null
                    && user.IsConfirmed
+                   && user.IsLocalAccount
                    && CheckPassword(user, password);
         }
 
@@ -878,16 +879,19 @@ namespace LyphTEC.MongoSimpleMembership
 
             if (verificationSucceeded)
             {
-                // Reset password failure count
-                user.PasswordFailuresSinceLastSuccess = 0;
+                // Reset password failure count if applicable
+                if (user.PasswordFailuresSinceLastSuccess > 0)
+                {
+                    user.PasswordFailuresSinceLastSuccess = 0;
+                    _context.Save(user);
+                }
             }
             else
             {
                 user.PasswordFailuresSinceLastSuccess = user.PasswordFailuresSinceLastSuccess + 1;
                 user.LastPasswordFailureDate = DateTime.UtcNow;
+                _context.Save(user);
             }
-
-            _context.Save(user);
 
             return verificationSucceeded;
         }

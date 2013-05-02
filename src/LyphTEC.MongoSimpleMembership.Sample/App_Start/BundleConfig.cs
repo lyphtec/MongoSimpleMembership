@@ -20,9 +20,10 @@ namespace LyphTEC.MongoSimpleMembership.Sample
             bundles.Add(new ScriptBundle("~/bundles/modernizr").Include(
                         "~/Scripts/modernizr-*"));
 
-            bundles.Add(new StyleBundle("~/Content/css").Include("~/Content/site.css"));
+            bundles.Add(new StyleBundle("~/Content/css").Include(
+                "~/Content/auth/auth-buttons.css",
+                "~/Content/site.css"));
 
-            bundles.Add(new StyleBundle("~/auth-buttons").Include("~/Content/auth/auth-buttons.css"));
         }
     }
 }

@@ -57,7 +57,7 @@ namespace LyphTEC.MongoSimpleMembership.Models
         public string ExtraData { get; set; }
 
         /// <summary>
-        /// Gets the name of the collection when stored in Mongo. By default it's &quot;webpages_Membership&quot;, but can be overridden in config by app setting &quot;MongoDBSimpleMembership:MembershipAccountName&quot;
+        /// Gets the name of the collection when stored in Mongo. By default it's &quot;webpages_Membership&quot;, but can be overridden in config by app setting &quot;MongoSimpleMembership:MembershipAccountName&quot;
         /// </summary>
         /// <returns></returns>
         public static string GetCollectionName()

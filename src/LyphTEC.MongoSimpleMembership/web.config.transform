@@ -1,0 +1,17 @@
+<configuration>
+  <system.web>
+
+    <membership defaultProvider="MongoSimpleMembershipProvider">
+      <providers>
+        <add name="MongoSimpleMembershipProvider" type="LyphTEC.MongoSimpleMembership.MongoSimpleMembershipProvider, LyphTEC.MongoSimpleMembership" connectionStringName="[Set to name of MongoDB connection]" />
+      </providers>
+    </membership>
+
+    <roleManager enabled="true" defaultProvider="MongoRoleProvider">
+      <providers>
+        <add name="MongoRoleProvider" type="LyphTEC.MongoSimpleMembership.MongoRoleProvider, LyphTEC.MongoSimpleMembership" connectionStringName="[Set to name of MongoDB connection]" />
+      </providers>
+    </roleManager>
+
+  </system.web>
+</configuration>

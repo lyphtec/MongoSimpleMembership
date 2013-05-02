@@ -24,7 +24,7 @@ namespace LyphTEC.MongoSimpleMembership.Models
         public string Secret { get; set; }
 
         /// <summary>
-        /// Gets the name of the collection when stored in Mongo. By default it's &quot;webpages_OAuthToken&quot; (similar to the standard SimpleMembershipProvider in WebMatrix.WebData), but can be overridden in config by app setting &quot;MongoDBSimpleMembership:OAuthTokenName&quot;
+        /// Gets the name of the collection when stored in Mongo. By default it's &quot;webpages_OAuthToken&quot; (similar to the standard SimpleMembershipProvider in WebMatrix.WebData), but can be overridden in config by app setting &quot;MongoSimpleMembership:OAuthTokenName&quot;
         /// </summary>
         /// <returns></returns>
         public static string GetCollectionName()

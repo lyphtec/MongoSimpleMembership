@@ -48,7 +48,7 @@ namespace LyphTEC.MongoSimpleMembership.Models
         }
 
         /// <summary>
-        /// Gets the name of the collection when stored in Mongo. By default it's &quot;webpages_Role&quot; (similar to the standard SimpleMembershipProvider in WebMatrix.WebData), but can be overridden in config by app setting &quot;MongoDBSimpleMembership:RoleName&quot;
+        /// Gets the name of the collection when stored in Mongo. By default it's &quot;webpages_Role&quot; (similar to the standard SimpleMembershipProvider in WebMatrix.WebData), but can be overridden in config by app setting &quot;MongoSimpleMembership:RoleName&quot;
         /// </summary>
         /// <returns></returns>
         public static string GetCollectionName()

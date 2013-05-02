@@ -1,0 +1,29 @@
+﻿@using WebMatrix.WebData
+
+@* Remove this section if you are using bundling *@
+@section Scripts {
+    <script src="~/Scripts/jquery.validate.min.js"></script>
+    <script src="~/Scripts/jquery.validate.unobtrusive.min.js"></script>
+}
+
+@{    
+    WebSecurity.RequireAuthenticatedUser();
+
+    //WebSecurity.RequireRoles("Admin");    // this will redirect user back to login page even if they are already logged in
+
+    if (!Roles.IsUserInRole("Admin")) {
+        Response.SetStatus(HttpStatusCode.Forbidden);
+    }
+
+    Layout = "~/_SiteLayout.cshtml";
+    Page.Title = "Admin page";
+}
+
+<hgroup class="title">
+    <h1>@Page.Title.</h1>
+    <h2>Admin only page.</h2>
+</hgroup>
+
+<article>
+    <p>This page is only accessible to users with role &quot;Admin&quot;</p>
+</article>

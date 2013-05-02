@@ -42,7 +42,7 @@ namespace LyphTEC.MongoSimpleMembership.Models
         public int UserId { get; set; }
 
         /// <summary>
-        /// Gets the name of the collection when stored in Mongo. By default it's &quot;webpages_OAuthMembership&quot; (similar to the standard SimpleMembershipProvider in WebMatrix.WebData), but can be overridden in config by app setting &quot;MongoDBSimpleMembership:OAuthMembershipName&quot;
+        /// Gets the name of the collection when stored in Mongo. By default it's &quot;webpages_OAuthMembership&quot; (similar to the standard SimpleMembershipProvider in WebMatrix.WebData), but can be overridden in config by app setting &quot;MongoSimpleMembership:OAuthMembershipName&quot;
         /// </summary>
         /// <returns></returns>
         public static string GetCollectionName()
