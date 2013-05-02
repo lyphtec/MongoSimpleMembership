@@ -8,11 +8,11 @@
     <owners>$author$</owners>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>
-      SimpleMembershipProvider using MongoDB as the backing store
+      SimpleMembership providers (Membership &amp; Role) using MongoDB as the backing store.      
       More information can be found at the project repo on GitHub (https://github.com/lyphtec/LyphTEC.MongoSimpleMembership)
     </description>
     <summary>$description$</summary>
-    <tags>lyphtec mongodb simplemembership simplemembershiprovider mvc4</tags>
+    <tags>lyphtec mongodb simplemembership mvc4 webmatrix MembershipProvider RoleProvider</tags>
     <projectUrl>https://github.com/lyphtec/LyphTEC.MongoSimpleMembership</projectUrl>
     <language>en-AU</language>
     <copyright>Copyright © 2013. LyphTEC (lyphtec@gmail.com)</copyright>

@@ -1,4 +1,4 @@
-MongoSimpleMembership v1.0.0
+MongoSimpleMembership v1.0.1
 ----------------------------
 
 SimpleMembershipProvider & RoleProvider using MongoDB as the backing store.
