@@ -53,15 +53,62 @@ You must complete the following steps after you have installed the NuGet package
    
 3.  If you are using the default "ASP.NET MVC4 Internet" template. You must make some changes to AccountController:
 
-    *   Remove the [InitializeSimpleMembership] attribute (this is the ActionFilterAttribute defined in Filters/InitializeSimpleMembershipAttribute.cs).
-        This used by the default SimpleMembershipProvider that needs to initialize the SQL Server.
-        Since we are not using SQL Server, this is no longer required.
+*   Remove the [InitializeSimpleMembership] attribute (this is the ActionFilterAttribute defined in Filters/InitializeSimpleMembershipAttribute.cs).
+    This used by the default SimpleMembershipProvider that needs to initialize the SQL Server.
+    Since we are not using SQL Server, this is no longer required.
 
-    *   Make changes to the ExternalLoginConfirmation() method to remove Entity Framework related hooks used by the default SimpleMembershipProvider.
+*   Make changes to the ExternalLoginConfirmation() method to remove Entity Framework related hooks used by the default SimpleMembershipProvider.
 
-        Here's what it looks like before the change: 
+    Here's what it looks like before the change: 
 
-        ```csharp
+    ```csharp
+    [HttpPost]
+    [AllowAnonymous]
+    [ValidateAntiForgeryToken]
+    public ActionResult ExternalLoginConfirmation(RegisterExternalLoginModel model, string returnUrl)
+    {
+        string provider = null;
+        string providerUserId = null;
+
+        if (User.Identity.IsAuthenticated || !OAuthWebSecurity.TryDeserializeProviderUserId(model.ExternalLoginData, out provider, out providerUserId))
+        {
+            return RedirectToAction("Manage");
+        }
+
+        if (ModelState.IsValid)
+        {
+            // Insert a new user into the database
+            using (UsersContext db = new UsersContext())
+            {
+                UserProfile user = db.UserProfiles.FirstOrDefault(u => u.UserName.ToLower() == model.UserName.ToLower());
+                // Check if user already exists
+                if (user == null)
+                {
+                    // Insert name into the profile table
+                    db.UserProfiles.Add(new UserProfile { UserName = model.UserName });
+                    db.SaveChanges();
+
+                    OAuthWebSecurity.CreateOrUpdateAccount(provider, providerUserId, model.UserName);
+                    OAuthWebSecurity.Login(provider, providerUserId, createPersistentCookie: false);
+
+                    return RedirectToLocal(returnUrl);
+                }
+                else
+                {
+                    ModelState.AddModelError("UserName", "User name already exists. Please enter a different user name.");
+                }
+            }
+        }
+
+        ViewBag.ProviderDisplayName = OAuthWebSecurity.GetOAuthClientData(provider).DisplayName;
+        ViewBag.ReturnUrl = returnUrl;
+        return View(model);
+    }
+    ```
+    
+    And here's what it should look like after the change:   
+
+    ```csharp
         [HttpPost]
         [AllowAnonymous]
         [ValidateAntiForgeryToken]
@@ -77,26 +124,21 @@ You must complete the following steps after you have installed the NuGet package
 
             if (ModelState.IsValid)
             {
-                // Insert a new user into the database
-                using (UsersContext db = new UsersContext())
+                var userId = WebSecurity.GetUserId(model.UserName);
+
+                if (userId == -1)
                 {
-                    UserProfile user = db.UserProfiles.FirstOrDefault(u => u.UserName.ToLower() == model.UserName.ToLower());
-                    // Check if user already exists
-                    if (user == null)
-                    {
-                        // Insert name into the profile table
-                        db.UserProfiles.Add(new UserProfile { UserName = model.UserName });
-                        db.SaveChanges();
+                    // TODO : Add custom user profile logic here
 
-                        OAuthWebSecurity.CreateOrUpdateAccount(provider, providerUserId, model.UserName);
-                        OAuthWebSecurity.Login(provider, providerUserId, createPersistentCookie: false);
+                    // this will create a non-local account
+                    OAuthWebSecurity.CreateOrUpdateAccount(provider, providerUserId, model.UserName);
+                    OAuthWebSecurity.Login(provider, providerUserId, createPersistentCookie: false);
 
-                        return RedirectToLocal(returnUrl);
-                    }
-                    else
-                    {
-                        ModelState.AddModelError("UserName", "User name already exists. Please enter a different user name.");
-                    }
+                    return RedirectToLocal(returnUrl);
+                }
+                else
+                {
+                    ModelState.AddModelError("UserName", "User name already exists. Please enter a different user name.");
                 }
             }
 
@@ -104,51 +146,9 @@ You must complete the following steps after you have installed the NuGet package
             ViewBag.ReturnUrl = returnUrl;
             return View(model);
         }
-        ```
-        
-        Here's what it should look like after the change:        
+    ```   
 
-        ```csharp
-            [HttpPost]
-            [AllowAnonymous]
-            [ValidateAntiForgeryToken]
-            public ActionResult ExternalLoginConfirmation(RegisterExternalLoginModel model, string returnUrl)
-            {
-                string provider = null;
-                string providerUserId = null;
-
-                if (User.Identity.IsAuthenticated || !OAuthWebSecurity.TryDeserializeProviderUserId(model.ExternalLoginData, out provider, out providerUserId))
-                {
-                    return RedirectToAction("Manage");
-                }
-
-                if (ModelState.IsValid)
-                {
-                    var userId = WebSecurity.GetUserId(model.UserName);
-
-                    if (userId == -1)
-                    {
-                        // TODO : Add custom user profile logic here
-
-                        // this will create a non-local account
-                        OAuthWebSecurity.CreateOrUpdateAccount(provider, providerUserId, model.UserName);
-                        OAuthWebSecurity.Login(provider, providerUserId, createPersistentCookie: false);
-
-                        return RedirectToLocal(returnUrl);
-                    }
-                    else
-                    {
-                        ModelState.AddModelError("UserName", "User name already exists. Please enter a different user name.");
-                    }
-                }
-
-                ViewBag.ProviderDisplayName = OAuthWebSecurity.GetOAuthClientData(provider).DisplayName;
-                ViewBag.ReturnUrl = returnUrl;
-                return View(model);
-            }
-        ```
-
-        See the [sample MVC4 app](https://github.com/lyphtec/LyphTEC.MongoSimpleMembership/tree/master/src/LyphTEC.MongoSimpleMembership.Sample) for reference.   
+    See the [sample MVC4 app](https://github.com/lyphtec/LyphTEC.MongoSimpleMembership/tree/master/src/LyphTEC.MongoSimpleMembership.Sample) for reference.   
 
 ## Customising the storage collection names
 
