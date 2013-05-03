@@ -2,7 +2,7 @@ MongoSimpleMembership v1.0.2
 ----------------------------
 
 SimpleMembership providers (Membership & Role) using MongoDB as the backing store.
-Project site: https://github.com/lyphtec/MongoSimpleMembership
+Project site: http://lyphtec.github.io/MongoSimpleMembership/
 
 You must complete the following steps before your app will run:
 
