@@ -53,8 +53,8 @@ You must complete the following steps after you have installed the NuGet package
    
 3.  If you are using the default "ASP.NET MVC4 Internet" template. You must make some changes to AccountController:
 
-*   Remove the [InitializeSimpleMembership] attribute (this is the ActionFilterAttribute defined in Filters/InitializeSimpleMembershipAttribute.cs).
-    This used by the default SimpleMembershipProvider that needs to initialize the SQL Server.
+*   Remove the [InitializeSimpleMembership] attribute (the ActionFilterAttribute defined in Filters/InitializeSimpleMembershipAttribute.cs).
+    This is used by the default SimpleMembershipProvider that needs to initialize SQL Server.
     Since we are not using SQL Server, this is no longer required.
 
 *   Make changes to the ExternalLoginConfirmation() method to remove Entity Framework related hooks used by the default SimpleMembershipProvider.
@@ -124,9 +124,8 @@ You must complete the following steps after you have installed the NuGet package
 
             if (ModelState.IsValid)
             {
-                var userId = WebSecurity.GetUserId(model.UserName);
-
-                if (userId == -1)
+                // check if user exists                
+                if (!WebSecurity.UserExists(model.UserName))
                 {
                     // TODO : Add custom user profile logic here
 
@@ -148,11 +147,11 @@ You must complete the following steps after you have installed the NuGet package
         }
     ```   
 
-    See the [sample MVC4 app](https://github.com/lyphtec/LyphTEC.MongoSimpleMembership/tree/master/src/LyphTEC.MongoSimpleMembership.Sample) for reference.   
+    See the [sample MVC4 app](https://github.com/lyphtec/MongoSimpleMembership/tree/master/src/LyphTEC.MongoSimpleMembership.Sample) for reference.   
 
 ## Customising the storage collection names
 
-By default, the [entities](https://github.com/lyphtec/LyphTEC.MongoSimpleMembership/tree/master/src/LyphTEC.MongoSimpleMembership/Models) are stored in collections with the following names:
+By default, the persisted [entities](https://github.com/lyphtec/MongoSimpleMembership/tree/master/src/LyphTEC.MongoSimpleMembership/Models) are stored in collections with the following names:
 
 ![Default collection names](http://static.lyphtec.com/projects/msm/default_collections.png)
 
@@ -171,6 +170,6 @@ If desired, you can change the default collection names by using the following a
 
 ## License
 
-[Apache License, Version 2.0](https://github.com/lyphtec/LyphTEC.MongoSimpleMembership/blob/master/license.txt)
+[Apache License, Version 2.0](https://github.com/lyphtec/MongoSimpleMembership/blob/master/license.txt)
 
 

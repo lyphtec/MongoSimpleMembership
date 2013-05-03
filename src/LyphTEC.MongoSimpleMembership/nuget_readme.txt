@@ -1,9 +1,8 @@
-MongoSimpleMembership v1.0.1
+MongoSimpleMembership v1.0.2
 ----------------------------
 
-SimpleMembershipProvider & RoleProvider using MongoDB as the backing store.
-Project site: https://github.com/lyphtec/LyphTEC.MongoSimpleMembership
-
+SimpleMembership providers (Membership & Role) using MongoDB as the backing store.
+Project site: https://github.com/lyphtec/MongoSimpleMembership
 
 You must complete the following steps before your app will run:
 
@@ -40,13 +39,13 @@ You must complete the following steps before your app will run:
 
 3. If you are using the default "ASP.NET MVC4 Internet" template. You must make some changes to AccountController:
         
-        a. Remove the [InitializeSimpleMembership] attribute (this is the ActionFilterAttribute defined in Filters/InitializeSimpleMembershipAttribute.cs).
-           This used by the default SimpleMembershipProvider that needs to initialize the SQL Server to setup the database.
-           Since we are no longer using SQL Server, this is no longer required.
+        a. Remove the [InitializeSimpleMembership] attribute (the ActionFilterAttribute defined in Filters/InitializeSimpleMembershipAttribute.cs).
+           This is used by the default SimpleMembershipProvider that needs to initialize SQL Server.
+           Since we are not using SQL Server, this is no longer required.
 
-        b. Make changes to the ExternalLoginConfirmation() method to remove SQL Server related hooks used by the default SimpleMembershipProvider.
+        b. Make changes to the ExternalLoginConfirmation() method to remove Entity Framework related hooks used by the default SimpleMembershipProvider.
            
-           Here's a complete example: 
+           Here's a complete example of what it should look like after the change:
 
                 [HttpPost]
                 [AllowAnonymous]
@@ -63,11 +62,10 @@ You must complete the following steps before your app will run:
 
                     if (ModelState.IsValid)
                     {
-                        var userId = WebSecurity.GetUserId(model.UserName);
-
-                        if (userId == -1)
+                        // check if user exists
+                        if (!WebSecurity.UserExists(model.UserName))
                         {
-                            // TODO : Add custom user profile logic
+                            // TODO : Add custom user profile logic here
 
                             // this will create a non-local account
                             OAuthWebSecurity.CreateOrUpdateAccount(provider, providerUserId, model.UserName);
@@ -86,4 +84,4 @@ You must complete the following steps before your app will run:
                     return View(model);
                 }
 
-        Checkout a working sample MVC4 app here : https://github.com/lyphtec/LyphTEC.MongoSimpleMembership/tree/master/src/LyphTEC.MongoSimpleMembership.Sample
+        See the sample MVC4 app at https://github.com/lyphtec/MongoSimpleMembership/tree/master/src/LyphTEC.MongoSimpleMembership.Sample for reference
