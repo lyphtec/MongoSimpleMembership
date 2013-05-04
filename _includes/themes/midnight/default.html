@@ -1,0 +1,60 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>{% if page.title %}{{ page.title }}{% else %}{{ site.title }}{% endif %}</title>
+    {% if page.description %}<meta name="description" content="{{ page.description }}">{% endif %}
+    <meta name="author" content="{{ site.author.name }}">
+    
+    <link rel="stylesheet" href="{{ ASSET_PATH }}/css/styles.css">
+    <link rel="stylesheet" href="{{ ASSET_PATH }}/css/pygment_trac.css">
+    
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+    <script src="{{ ASSET_PATH }}/javascripts/respond.js"></script>
+    
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <!--[if lt IE 8]>
+    <link rel="stylesheet" href="{{ ASSET_PATH }}/css/ie.css">
+    <![endif]-->
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+
+  </head>
+  <body>
+      <div id="header">
+        <nav>
+          <li class="fork"><a href="{{ site.project_url }}">View On GitHub</a></li>
+          <li class="downloads"><a href="{{ site.install_url }}" target="_blank">{{ site.install_label }}</a></li>
+          <li class="title">INSTALL FROM</li>
+        </nav>
+      </div><!-- end header -->
+
+    <div class="wrapper">
+
+      <section>
+        <div id="title">
+          <h1>{{ page.title }}</h1>
+          <hr>
+          <span class="credits left">Project maintained by <a href="https://github.com/{{ site.author.github }}">{{ site.author.github }}</a></span>
+          <span class="credits right">Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/mattgraham/Midnight" target="_blank">mattgraham</a></span>
+        </div>
+      
+        {{ content }}
+
+      </section>
+      
+      <section>
+        <h2>Discussions</h2>
+        {% include JB/comments %}
+      </section>
+              
+    </div>
+    
+    <!--[if !IE]><script>fixScale(document);</script><![endif]-->
+  
+    {% include JB/analytics %}
+  </body>
+</html>
