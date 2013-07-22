@@ -4,13 +4,14 @@
     // To let users of this site log in using their accounts from other sites such as Microsoft, Facebook, Twitter,
     // you must update this site. For more information visit http://go.microsoft.com/fwlink/?LinkID=226949
 
-    //OAuthWebSecurity.RegisterMicrosoftClient(
-    //    clientId: "",
-    //    clientSecret: "");
+    // This is setup for http://lyphtec.localtest.me
+    OAuthWebSecurity.RegisterMicrosoftClient(
+        clientId: "000000004C0EAB62",
+        clientSecret: "SNBT9h-pSlfA8NLT641T2Lq1QDKPdcuF");
 
-    //OAuthWebSecurity.RegisterTwitterClient(
-    //    consumerKey: "",
-    //    consumerSecret: "");
+    OAuthWebSecurity.RegisterTwitterClient(
+        consumerKey: "ZsiTefkL4iiIOSlU2NrvA",
+        consumerSecret: "b6wopcUfB8LGYpi2b9NK4xY9rxYbEhHEncZ1w");
 
     // IMPORTANT: We are using same as the MVC4 sample - so this is running on the same local port, thus we cannot have 2 up at the same time!
     OAuthWebSecurity.RegisterFacebookClient(
@@ -19,11 +20,11 @@
 
     OAuthWebSecurity.RegisterGoogleClient();
     
-    //WebMail.SmtpServer = "mailserver.example.com";
+    WebMail.SmtpServer = "mail.tpgi.com.au";
     //WebMail.EnableSsl = true;
     //WebMail.UserName = "username@example.com";
     //WebMail.Password = "your-password";
-    //WebMail.From = "your-name-here@example.com";
+    WebMail.From = "test@localhost.com";
 
     // To learn how to optimize scripts and stylesheets in your site go to http://go.microsoft.com/fwlink/?LinkID=248973
 }
