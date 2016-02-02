@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Configuration;
 using System.Configuration.Provider;
 using System.Diagnostics;
@@ -9,10 +10,8 @@ using LyphTEC.MongoSimpleMembership.Models;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.IdGenerators;
-using MongoDB.Bson.Serialization.Options;
+using MongoDB.Bson.Serialization.Serializers;
 using MongoDB.Driver;
-using MongoDB.Driver.Builders;
-using MongoDB.Driver.Linq;
 
 namespace LyphTEC.MongoSimpleMembership.Services
 {
@@ -24,7 +23,10 @@ namespace LyphTEC.MongoSimpleMembership.Services
         static MongoDataContext()
         {
             // Init Mongo mappings & set configuration options etc
-            DateTimeSerializationOptions.Defaults = new DateTimeSerializationOptions(DateTimeKind.Utc, BsonType.Document);
+
+            // New way to use DateTimeSerializationOptions : http://grokbase.com/t/gg/mongodb-user/133vrg3p74/datetimeserializationoptions-defaults-obsolete-in-1-8
+            var dtSerializer = new DateTimeSerializer(DateTimeKind.Utc, BsonType.Document);
+            BsonSerializer.RegisterSerializer(dtSerializer);
 
             if (!BsonClassMap.IsClassMapRegistered(typeof (MembershipAccount)))
             {
@@ -32,7 +34,7 @@ namespace LyphTEC.MongoSimpleMembership.Services
                                                                      {
                                                                          cm.AutoMap();
                                                                          cm.SetIdMember(cm.GetMemberMap(x => x.UserId));
-                                                                         cm.IdMemberMap.SetRepresentation(BsonType.Int32).SetIdGenerator(IntIdGenerator.Instance);
+                                                                         cm.IdMemberMap.SetSerializer(new Int32Serializer(BsonType.Int32)).SetIdGenerator(IntIdGenerator<MembershipAccount>.Instance);
                                                                          cm.GetMemberMap(x => x.UserName).SetIsRequired(true);
                                                                          cm.SetIgnoreExtraElements(true);
                                                                      }
@@ -45,7 +47,7 @@ namespace LyphTEC.MongoSimpleMembership.Services
                                                         {
                                                             cm.AutoMap();
                                                             cm.SetIdMember(cm.GetMemberMap(x => x.RoleId));
-                                                            cm.IdMemberMap.SetRepresentation(BsonType.Int32).SetIdGenerator(IntIdGenerator.Instance);
+                                                            cm.IdMemberMap.SetSerializer(new Int32Serializer(BsonType.Int32)).SetIdGenerator(IntIdGenerator<Role>.Instance);
                                                             cm.GetMemberMap(x => x.RoleName).SetIsRequired(true);
                                                             cm.SetIgnoreExtraElements(true);
                                                         }
@@ -58,7 +60,7 @@ namespace LyphTEC.MongoSimpleMembership.Services
                                                               {
                                                                   cm.AutoMap();
                                                                   cm.SetIdMember(cm.GetMemberMap(x => x.Id));
-                                                                  cm.IdMemberMap.SetRepresentation(BsonType.ObjectId).SetIdGenerator(BsonObjectIdGenerator.Instance);
+                                                                  cm.IdMemberMap.SetSerializer(new ObjectSerializer()).SetIdGenerator(BsonObjectIdGenerator.Instance);
                                                                   cm.GetMemberMap(x => x.Token).SetIsRequired(true);
                                                                   cm.GetMemberMap(x => x.Secret).SetIsRequired(true);
                                                                   cm.SetIgnoreExtraElements(true);
@@ -72,7 +74,7 @@ namespace LyphTEC.MongoSimpleMembership.Services
                                                                    {
                                                                        cm.AutoMap();
                                                                        cm.SetIdMember(cm.GetMemberMap(x => x.Id));
-                                                                       cm.IdMemberMap.SetRepresentation(BsonType.ObjectId).SetIdGenerator(BsonObjectIdGenerator.Instance);
+                                                                       cm.IdMemberMap.SetSerializer(new ObjectSerializer()).SetIdGenerator(BsonObjectIdGenerator.Instance);
                                                                        cm.GetMemberMap(x => x.Provider).SetIsRequired(true);
                                                                        cm.GetMemberMap(x => x.ProviderUserId).SetIsRequired(true);
                                                                        cm.SetIgnoreExtraElements(true);
@@ -84,11 +86,13 @@ namespace LyphTEC.MongoSimpleMembership.Services
             BsonSerializer.UseZeroIdChecker = true;
         }
 
-        private readonly MongoDatabase _db;
-        private readonly MongoCollection<Role> _roleCol;
-        private readonly MongoCollection<MembershipAccount> _userCol;
-        private readonly MongoCollection<OAuthToken> _oAuthTokenCol;
-        private readonly MongoCollection<OAuthMembership> _oAuthMembershipCol;
+        private readonly IMongoDatabase _db;
+        private readonly IMongoCollection<Role> _roleCol;
+        private readonly IMongoCollection<MembershipAccount> _userCol;
+        private readonly IMongoCollection<OAuthToken> _oAuthTokenCol;
+        private readonly IMongoCollection<OAuthMembership> _oAuthMembershipCol;
+
+        private readonly CreateIndexOptions _uniqueIndexOptions = new CreateIndexOptions {Unique = true};
 
         public MongoDataContext(string connectionNameOrString)
         {
@@ -106,67 +110,39 @@ namespace LyphTEC.MongoSimpleMembership.Services
             _oAuthTokenCol = _db.GetCollection<OAuthToken>(OAuthToken.GetCollectionName());
             _oAuthMembershipCol = _db.GetCollection<OAuthMembership>(OAuthMembership.GetCollectionName());
 
-            // Check that we can connect to MongoDB server -- will throw an exception that should be caught in provider init
-            _roleCol.EnsureUniqueIndex(x => x.RoleName);
+            SetupIndexes();
         }
-        
-        private static MongoDatabase GetDatase(string connectionString)
+
+        private void SetupIndexes()
+        {
+            _roleCol.Indexes.CreateOneAsync(Builders<Role>.IndexKeys.Ascending(x => x.RoleName), _uniqueIndexOptions);
+            _userCol.Indexes.CreateOneAsync(Builders<MembershipAccount>.IndexKeys.Ascending(x => x.UserNameLower), _uniqueIndexOptions);
+            _userCol.Indexes.CreateOneAsync(Builders<MembershipAccount>.IndexKeys.Ascending(x => x.ConfirmationToken), _uniqueIndexOptions);
+            _oAuthTokenCol.Indexes.CreateOneAsync(Builders<OAuthToken>.IndexKeys.Ascending(x => x.Token), _uniqueIndexOptions);
+            _oAuthMembershipCol.Indexes.CreateOneAsync(Builders<OAuthMembership>.IndexKeys.Ascending(x => x.Provider).Ascending(x => x.ProviderUserId), _uniqueIndexOptions);
+        }
+
+        private static IMongoDatabase GetDatase(string connectionString)
         {
             Contract.Requires<ArgumentNullException>(!string.IsNullOrWhiteSpace(connectionString));
 
             var url = MongoUrl.Create(connectionString);
             var client = new MongoClient(url);
-            var server = client.GetServer();
 
-            return server.GetDatabase(url.DatabaseName, WriteConcern.Acknowledged /* explicit setting */);
+            var settings = new MongoDatabaseSettings {WriteConcern = WriteConcern.Acknowledged};    // explicit
+
+            return client.GetDatabase(url.DatabaseName, settings);
         }
 
-        public MongoDatabase Database
-        {
-            get { return _db; }
-        }
+        public IMongoDatabase Database => _db;
 
-        public IQueryable<MembershipAccount> Users
-        {
-            get
-            {
-                _userCol.EnsureUniqueIndex(x => x.UserNameLower);
-                _userCol.EnsureUniqueIndex(x => x.ConfirmationToken);
-                //_userCol.EnsureUniqueIndex(x => x.PasswordVerificationToken);
+        public IQueryable<MembershipAccount> Users => _userCol.AsQueryable();
 
-                return _userCol.AsQueryable();
-            }
-        }
+        public IQueryable<Role> Roles => _roleCol.AsQueryable();
 
-        public IQueryable<Role> Roles
-        {
-            get
-            {
-                _roleCol.EnsureUniqueIndex(x => x.RoleName);
+        public IQueryable<OAuthToken> OAuthTokens => _oAuthTokenCol.AsQueryable();
 
-                return _roleCol.AsQueryable();
-            }
-        }
-
-        public IQueryable<OAuthToken> OAuthTokens
-        {
-            get
-            {
-                _oAuthTokenCol.EnsureUniqueIndex(x => x.Token);
-
-                return _oAuthTokenCol.AsQueryable();
-            }
-        }
-
-        public IQueryable<OAuthMembership> OAuthMemberships
-        {
-            get
-            {
-                _oAuthMembershipCol.EnsureUniqueIndex(x => x.Provider, x => x.ProviderUserId);
-
-                return _oAuthMembershipCol.AsQueryable();
-            } 
-        }
+        public IQueryable<OAuthMembership> OAuthMemberships => _oAuthMembershipCol.AsQueryable();
 
         private static string GetCollectionName<T>()
         {
@@ -191,29 +167,39 @@ namespace LyphTEC.MongoSimpleMembership.Services
         {
             Contract.Requires<ArgumentNullException>(item != null);
 
-            var col = _db.GetCollection<T>(GetCollectionName<T>());
-            
-            var result = col.Save(item, WriteConcern.Acknowledged);
-            
-            ValidWriteResult(result);
+            try
+            {
+                var col = _db.GetCollection<T>(GetCollectionName<T>());
 
-            return result.Ok;
+                var filter = new BsonDocument();
+                var update = Builders<T>.Update.Set(x => x, item);
+
+                var result = col.UpdateOneAsync(filter, update, new UpdateOptions { IsUpsert = true });
+                var updateResult = result.Result;
+                return updateResult.IsAcknowledged;
+            }
+            catch (Exception ex)
+            {
+                Trace.TraceError($"MongoDataContext.Save() ERROR: {ex}");
+                throw new ProviderException(ex.Message);
+            }
         }
 
         public bool RemoveById<T>(object id) where T : class
         {
-            IMongoQuery query;
+            BsonDocument filter;
 
             if (typeof (T) == typeof (OAuthToken) || typeof(T) == typeof(OAuthMembership))
-                query = Query.EQ("_id", id.ToString().ToBsonObjectId());
+                filter = new BsonDocument("_id", id.ToString().ToBsonObjectId());
             else
-                query = Query.EQ("_id", BsonValue.Create(id));
-            
-            var result = _db.GetCollection<T>(GetCollectionName<T>()).Remove(query, WriteConcern.Acknowledged);
+                filter = new BsonDocument("_id", BsonValue.Create(id));
 
-            ValidWriteResult(result);
+            var result = _db.GetCollection<T>(GetCollectionName<T>()).FindOneAndDeleteAsync(filter);
 
-            return result.Ok;
+            if (result.IsFaulted && result.Exception != null)
+                throw new ProviderException(result.Exception.Message);
+
+            return result.IsCompleted;
         }
 
         public MembershipAccount GetUser(string userName)
@@ -249,30 +235,26 @@ namespace LyphTEC.MongoSimpleMembership.Services
             Contract.Requires<ArgumentNullException>(id != null);
 
             var value = typeof (T) == typeof (OAuthToken) || typeof (T) == typeof (OAuthMembership) ? id.ToString().ToBsonObjectId() : BsonValue.Create(id);
+            var filter = new BsonDocument("_id", value);
             
-            return _db.GetCollection<T>(GetCollectionName<T>()).FindOneByIdAs<T>(value);
+            var result = _db.GetCollection<T>(GetCollectionName<T>()).Find<T>(filter).FirstOrDefaultAsync();
+
+            return result.Result;
         }
 
-        public void RemoveOAuthMemberships(int userId)
+        public async void RemoveOAuthMemberships(int userId)
         {
             try
             {
-                var query = Query.EQ("UserId", BsonValue.Create(userId));
-                var result = _oAuthMembershipCol.Remove(query, WriteConcern.Acknowledged);
+                var filter = Builders<OAuthMembership>.Filter.Eq(x => x.UserId, BsonValue.Create(userId));
 
-                if (!result.Ok && result.HasLastErrorMessage)
-                    Trace.TraceError("MongoDataContext.RemoveOAuthMembershipsByUserId() Remove ERROR: {0}", result.LastErrorMessage);
+                await _oAuthMembershipCol.DeleteManyAsync(filter);
             }
             catch (Exception ex)
             {
-                Trace.TraceError("MongoDataContext.RemoveOAuthMembershipsByUserId() ERROR: {0}", ex.ToString());
+                Trace.TraceError($"MongoDataContext.RemoveOAuthMemberships() ERROR: {ex}");
             }
         }
-
-        private static void ValidWriteResult(GetLastErrorResult result)
-        {
-           if (!result.Ok && result.HasLastErrorMessage) 
-               throw new ProviderException(result.LastErrorMessage);
-        }
+        
     }
 }

@@ -21,7 +21,7 @@ namespace LyphTEC.MongoSimpleMembership
         private MongoDataContext _context;
         private bool _isInitialized = false;
 
-        public MongoDatabase Database
+        public IMongoDatabase Database
         {
             get
             {

@@ -2,13 +2,10 @@
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Web.Helpers;
 using LyphTEC.MongoSimpleMembership.Models;
 using MongoDB.Bson;
 using MongoDB.Driver;
-using MongoDB.Driver.Linq;
 
 namespace LyphTEC.MongoSimpleMembership.Tests
 {
@@ -19,7 +16,7 @@ namespace LyphTEC.MongoSimpleMembership.Tests
         public IQueryable<OAuthToken> OAuthTokens { get; protected set; }
         public IQueryable<OAuthMembership> OAuthMemberships { get; protected set; }
 
-        private MongoCollection<MembershipAccount> _usersCol;
+        private IMongoCollection<MembershipAccount> _usersCol;
 
         public MembershipProviderTestFixture()
         {
@@ -33,40 +30,43 @@ namespace LyphTEC.MongoSimpleMembership.Tests
             SeedData(Provider.Database);
         }
 
-        private void SeedData(MongoDatabase db)
+        private async void SeedData(IMongoDatabase db)
         {
-            if (db == null) throw new ArgumentNullException("db");
+            if (db == null) throw new ArgumentNullException(nameof(db));
             
             // Reset db
-            db.GetCollection("IDSequence").Drop();
+            await db.DropCollectionAsync("IDSequence");
+            await db.DropCollectionAsync(MembershipAccount.GetCollectionName());
 
-            _usersCol = db.GetCollection<MembershipAccount>(MembershipAccount.GetCollectionName());
-            _usersCol.Drop();
+            _usersCol = Provider.Database.GetCollection<MembershipAccount>(MembershipAccount.GetCollectionName());
 
             var salt = Crypto.GenerateSalt();
 
-            var user1 = new MembershipAccount("User1")
-                            {
-                                PasswordSalt =  salt,
-                                Password = Crypto.HashPassword("p@ssword" + salt),
-                                IsConfirmed = false
-                            };
+            var users = new List<MembershipAccount>
+            {
+                new MembershipAccount("User1")
+                {
+                    PasswordSalt = salt,
+                    Password = Crypto.HashPassword("p@ssword" + salt),
+                    IsConfirmed = false
+                },
 
-            var user2 = new MembershipAccount("NonLocalUser")
-                            {
-                                IsLocalAccount = false,
-                                IsConfirmed = true
-                            };
+                new MembershipAccount("NonLocalUser")
+                {
+                    IsLocalAccount = false,
+                    IsConfirmed = true
+                }
+            };
 
-            _usersCol.InsertBatch(new[] { user1, user2 });
+            await _usersCol.InsertManyAsync(users);
 
+            await db.DropCollectionAsync(OAuthToken.GetCollectionName());
             var oAuthTokenCol = db.GetCollection<OAuthToken>(OAuthToken.GetCollectionName());
-            oAuthTokenCol.Drop();
-            oAuthTokenCol.Insert(new OAuthToken("Tok3n", "tok3nSecret"));
+            await oAuthTokenCol.InsertOneAsync(new OAuthToken("Tok3n", "tok3nSecret"));
 
+            await db.DropCollectionAsync(OAuthMembership.GetCollectionName());
             var oAuthMembershipCol = db.GetCollection<OAuthMembership>(OAuthMembership.GetCollectionName());
-            oAuthMembershipCol.Drop();
-            oAuthMembershipCol.Insert( new OAuthMembership("Test", "User1@Test", 1) );
+            await oAuthMembershipCol.InsertOneAsync(new OAuthMembership("Test", "User1@Test", 1) );
 
             Users = _usersCol.AsQueryable();
             OAuthTokens = oAuthTokenCol.AsQueryable();
@@ -75,12 +75,20 @@ namespace LyphTEC.MongoSimpleMembership.Tests
 
         public MembershipAccount GetUserById(int id)
         {
-            return _usersCol.FindOneById(BsonValue.Create(id));
+            var filter = Builders<MembershipAccount>.Filter.Eq("_id", BsonValue.Create(id));
+
+            var result = _usersCol.Find(filter).FirstOrDefaultAsync();
+
+            return result.Result;
         }
 
         public void SaveUser(MembershipAccount user)
         {
-            _usersCol.Save(user);
+            var filter = Builders<MembershipAccount>.Filter.Empty;
+            var update = Builders<MembershipAccount>.Update.Set(x => x, user);
+            var options = new UpdateOptions { IsUpsert = true };
+
+            _usersCol.UpdateOneAsync(filter, update, options);
         }
     }
 }

@@ -4,7 +4,6 @@ using System.Collections.Specialized;
 using System.Linq;
 using LyphTEC.MongoSimpleMembership.Models;
 using MongoDB.Driver;
-using MongoDB.Driver.Linq;
 
 namespace LyphTEC.MongoSimpleMembership.Tests
 {
@@ -26,15 +25,15 @@ namespace LyphTEC.MongoSimpleMembership.Tests
             SeedData(Provider.Database);
         }
 
-        private void SeedData(MongoDatabase db)
+        private async void SeedData(IMongoDatabase db)
         {
-            if (db == null) throw new ArgumentNullException("db");
+            if (db == null) throw new ArgumentNullException(nameof(db));
 
             // Reset db
-            db.GetCollection("IDSequence").Drop();
-            
+            await db.DropCollectionAsync("IDSequence");
+            await db.DropCollectionAsync(Role.GetCollectionName());
+
             var rolesCol = db.GetCollection<Role>(Role.GetCollectionName());
-            rolesCol.Drop();        // clear 1st
             
             var roles = new List<Role>
                             {
@@ -43,11 +42,10 @@ namespace LyphTEC.MongoSimpleMembership.Tests
                                 new Role("Guest")
                             };
 
-            rolesCol.InsertBatch(roles);
+            await rolesCol.InsertManyAsync(roles);
 
-            
+            await db.DropCollectionAsync(MembershipAccount.GetCollectionName());
             var usersCol = db.GetCollection<MembershipAccount>(MembershipAccount.GetCollectionName());
-            usersCol.Drop();
 
             var user1 = new MembershipAccount("User1");
             user1.Roles.Add("Admin");  // this user is an Admin
@@ -59,7 +57,7 @@ namespace LyphTEC.MongoSimpleMembership.Tests
                                 new MembershipAccount("User3")
                             };
 
-            usersCol.InsertBatch(users);
+            await usersCol.InsertManyAsync(users);
 
             Roles = rolesCol.AsQueryable();
             Users = usersCol.AsQueryable();

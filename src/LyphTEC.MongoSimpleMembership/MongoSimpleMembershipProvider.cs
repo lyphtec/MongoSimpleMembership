@@ -28,7 +28,7 @@ namespace LyphTEC.MongoSimpleMembership
         private int _minRequiredNonalphanumericCharacters;
         private string _passwordStrengthRegularExpression = string.Empty;
 
-        public MongoDatabase Database
+        public IMongoDatabase Database
         {
             get
             {

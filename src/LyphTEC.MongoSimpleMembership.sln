@@ -1,10 +1,8 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2012
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LyphTEC.MongoSimpleMembership", "LyphTEC.MongoSimpleMembership\LyphTEC.MongoSimpleMembership.csproj", "{C3D80B68-642B-4961-92C6-3E6112DC8CD7}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LyphTEC.MongoSimpleMembership.Tests", "LyphTEC.MongoSimpleMembership.Tests\LyphTEC.MongoSimpleMembership.Tests.csproj", "{9D3862C3-DA0E-4AFD-B8AA-F8DC8B792CD5}"
-EndProject
+# Visual Studio 14
+VisualStudioVersion = 14.0.23107.0
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Common", "Common", "{64B970FF-88AA-4F53-B5AA-4CD9E7C8AE85}"
 	ProjectSection(SolutionItems) = preProject
 		Common\CommonAssemblyInfo.cs = Common\CommonAssemblyInfo.cs
@@ -22,6 +20,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Build", "Build", "{975F2E1A
 		build.cmd = build.cmd
 		build.proj = build.proj
 	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LyphTEC.MongoSimpleMembership", "LyphTEC.MongoSimpleMembership\LyphTEC.MongoSimpleMembership.csproj", "{C3D80B68-642B-4961-92C6-3E6112DC8CD7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LyphTEC.MongoSimpleMembership.Tests", "LyphTEC.MongoSimpleMembership.Tests\LyphTEC.MongoSimpleMembership.Tests.csproj", "{9D3862C3-DA0E-4AFD-B8AA-F8DC8B792CD5}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LyphTEC.MongoSimpleMembership.Sample", "LyphTEC.MongoSimpleMembership.Sample\LyphTEC.MongoSimpleMembership.Sample.csproj", "{803DDD38-0557-411A-9CB2-985F70CB18DA}"
 EndProject
